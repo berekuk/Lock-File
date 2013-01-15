@@ -7,12 +7,16 @@ use Test::More;
 
 use lib 'lib';
 
-use Lock::File;
-use Yandex::X;
-use PPB::Test::TFiles;
+use Lock::File qw(lockf);
+
+use autodie qw(fork);
+
+use File::Path qw(remove_tree);
+remove_tree('tfiles');
+mkdir 'tfiles';
 
 $ENV{LANG} = 'ru_RU.utf8';
-if (!xfork) {
+if (!fork) {
     my $lock = lockf("./tfiles/lock");
     sleep 2;
     exit(0);
