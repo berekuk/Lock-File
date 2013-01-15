@@ -136,6 +136,7 @@ Third, maybe I'm going to release L<Lock::Zookeeper> with the similar interface 
 =cut
 
 use strict;
+no warnings;
 use Fcntl qw(:flock);
 
 use Lock::File::Alarm;
