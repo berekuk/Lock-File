@@ -47,7 +47,7 @@ OFF by default. Tells to achieve a shared lock. If not set, an exclusive lock is
 =item I<blocking>
 
 ON by default. If unset, a non-blocking mode of flock is used. If this flock fails because the lock is already held by some other process,
- the behavior is determined by the value of 'version' parameter. If the failure reason is somewhat different, permissions problems or the 
+ the behavior is determined by the value of 'version' parameter. If the failure reason is somewhat different, permissions problems or the
  absence of a target file directory for example, an exception is raisen.
 
 =item I<version>
@@ -58,7 +58,7 @@ The default value is 2. This may be overridden by the import directive like C<us
 
 =item I<timeout>
 
-Undef by default. If set, specifies the wait timeout for acquiring the blocking lock. The value of 0 is allowed, which emulates the behavior 
+Undef by default. If set, specifies the wait timeout for acquiring the blocking lock. The value of 0 is allowed, which emulates the behavior
  of blocking => 0, version => 2 combination, reguardless of the actual version value.
 
 =item I<mode>
@@ -140,7 +140,7 @@ use Yandex::Version '{{DEBIAN_VERSION}}';
 use Yandex::Lockf::Alarm;
 
 use Yandex::Logger;
-use Yandex::X 1.2.0; # atomic xopen+chmod 
+use Yandex::X 1.2.0; # atomic xopen+chmod
 use Params::Validate;
 use POSIX qw(:errno_h);
 use Carp;
