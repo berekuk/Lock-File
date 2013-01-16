@@ -152,7 +152,7 @@ use base qw(Exporter);
 our @EXPORT_OK = qw( lockf unlockf lockf_multi lockf_any );
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
-sub DESTROY ($) {
+sub DESTROY {
     local $@;
     my ($self) = @_;
     my $fh = $self->{_fh};
@@ -246,7 +246,7 @@ sub _lockf_and_check {
     }
 }
 
-sub _xflock($$) {
+sub _xflock {
     my ($fh, $mode) = @_;
     flock $fh, $mode or die "flock failed: $!";
 }
@@ -358,7 +358,7 @@ sub lockf_multi ($$;$) {
 }
 
 
-sub lockf_any($;$) {
+sub lockf_any ($;$) {
     my ($flist, $opts) = @_;
     if ($opts and not ref $opts) {
         $opts = { version => 3 };
