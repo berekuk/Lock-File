@@ -119,7 +119,7 @@ There're L<tons of file locking modules|https://metacpan.org/search?q=lock> on C
 
 And yet, every time I tried to find a replacement for our in-house code on which this module is based, every one of them had quirks which I found too uncomfortable. I had to copy our code as L<Ubic::Lockf> when I opensourced Ubic.
 
-I wanted to do the review all those modules, L<neilb style|http://neilb.org/reviews/>. I never got around to that, and then I realized how much this task holds me back in releasing other useful stuff.
+I wanted to do the review of all those modules, L<neilb style|http://neilb.org/reviews/>. I never got around to that, and then I realized how much this task holds me back from releasing other useful stuff.
 
 So... sorry for bringing yet-another-file-locking module into the world.
 
