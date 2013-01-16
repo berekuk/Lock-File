@@ -400,6 +400,16 @@ L<File::Lock::Multi>
 
 L<File::Lock>
 
+L<File::FcntlLock>
+
+L<File::TinyLock>
+
+L<ExclusiveLock::Guard>
+
+L<File::lockf>
+
+And many others.
+
 =cut
 
 1;
