@@ -241,7 +241,7 @@ sub test_lockf_any :Tests {
     my $lock1 = lockf_any(\@files);
     my $lock2 = lockf_any(\@files);
 
-    ok(!lockf_any(\@files, 1), "lockf_any won't lock what it should not");
+    ok(!lockf_any(\@files), "lockf_any won't lock what it should not");
     ok(($lock1->name() eq 'tfiles/lock.foo') && ($lock2->name() eq 'tfiles/lock.bar'), "names and order are fine");
 }
 

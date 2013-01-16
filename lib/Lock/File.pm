@@ -54,14 +54,16 @@ Tells to achieve a shared lock. If not set, an exclusive lock is requested.
 
 ON by default.
 If unset, a non-blocking mode of flock is used. If this flock fails because the lock is already held by some other process,
-C<undef> is returned. If the failure reason is somewhat different, e.g. permissions problems or the absence of a target file directory, an exception is raised.
+C<undef> is returned. If the failure reason is somewhat different, e.g. permissions problems or the absence of a target file directory, an exception is thrown.
 
 =item I<timeout>
 
 Unset by default.
 If set, specifies the wait timeout for acquiring the blocking lock.
 
-The value of 0 is equivalent to C<< blocking => 0 >> option.
+Throws an exception on timeout.
+
+The value of 0 is equivalent to C<< blocking => 0 >> option, except that it throws an exception instead of returning undef if the file is already locked.
 
 =item I<mode>
 
@@ -79,7 +81,7 @@ If set, the lock file will be deleted before unlocking.
 
 Calls non-blocking C<lockf>'s for files from C<$fname.0> to C<$fname.$max-1>, and returns a C<Lock::File> object for the first successful lock.
 
-Only one option I<version> is currently supported, it works like version from C<lockf> call.
+Only I<remove> and I<mode> options are supported.
 
 =item B<lockf_any($filenames, $options)>
 
@@ -165,7 +167,6 @@ sub DESTROY {
 my %defaults = (
     shared => 0,
     blocking => 1,
-    version => 2,
     timeout => undef,
     mode => undef,
     remove => 0,
@@ -179,7 +180,6 @@ sub lockf ($;$) {
         shared => 0,
         timeout => 0,
         mode => 0,
-        version => 0,
         remove => 0,
     });
     $opts = {%defaults, %$opts};
@@ -304,36 +304,29 @@ sub unlockf {
     $self->DESTROY();
 }
 
-my %multi_defaults = (
-    version => 2,
-    remove => 0,
-);
-
 sub lockf_multi ($$;$) {
     my ($fname, $max, $opts) = @_;
-    if ($opts and not ref $opts) {
-        $opts = { version => 3 };
-    }
     if ($opts) {
         $opts = validate(@{ [$opts] }, {
-            version => 0,
             remove => 0,
+            mode => 0,
         });
     }
     else {
         $opts = {};
     }
-    $opts = {%multi_defaults, %$opts};
 
-    my $metalock = lockf("$fname.meta", { remove => 1 }); # to make sure no one will mess up the things
+    # to make sure no one will mess up the things
+    # TODO - apply opts to metalock too?
+    my $metalock = lockf("$fname.meta", { remove => 1 });
 
-    my %flist = map { $_=>1 } grep { /^\Q$fname\E\.\d+$/ } glob "\Q$fname\E.*";
+    my %flist = map { $_ => 1 } grep { /^\Q$fname\E\.\d+$/ } glob "\Q$fname\E.*";
 
     my $locked = 0;
     my $ret;
     for my $file (keys %flist) # try to get lock on existing file
     {
-        my $lockf = lockf($file, { blocking => 0, version => 3, remove => $opts->{remove} });
+        my $lockf = lockf($file, { blocking => 0, %$opts });
         $locked++ unless $lockf;
         $ret ||= $lockf;
         if ($locked >= $max) {
@@ -346,8 +339,8 @@ sub lockf_multi ($$;$) {
         for my $i (0 .. ($max-1)) {
             my $file = "$fname.$i";
             next if $flist{$file};
-            my $lockf = lockf($file, { blocking => 0, version => 3, remove => $opts->{remove} });
-            die unless $lockf; # mystery
+            my $lockf = lockf($file, { blocking => 0, %$opts });
+            die unless $lockf; # mystery - FIXME
             $ret = $lockf;
             last;
         }
@@ -360,28 +353,23 @@ sub lockf_multi ($$;$) {
 
 sub lockf_any ($;$) {
     my ($flist, $opts) = @_;
-    if ($opts and not ref $opts) {
-        $opts = { version => 3 };
-    }
     if ($opts) {
         $opts = validate(@{ [$opts] }, {
-            version => 0,
             remove => 0,
+            mode => 0,
         });
     }
     else {
         $opts = {};
     }
-    $opts = {%multi_defaults, %$opts};
 
     for my $fname (@$flist)
     {
-        my $lockf = lockf($fname, { blocking => 0, version => 3, remove => $opts->{remove} });
+        my $lockf = lockf($fname, { blocking => 0, remove => $opts->{remove} });
         return $lockf if $lockf;
     }
 
-    return undef if $opts->{version} >= 3;
-    croak "lockf_any couldn't get lock";
+    return undef;
 }
 
 1;

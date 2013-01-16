@@ -22,7 +22,7 @@ if (!fork) {
     exit(0);
 } else {
     sleep 1;
-    ok((not defined lockf("./tfiles/lock", {blocking => 0})), 'version 3 returns undef when already locked');
+    ok((not defined lockf("./tfiles/lock", {blocking => 0})), 'returns undef when already locked');
 }
 
 done_testing;
