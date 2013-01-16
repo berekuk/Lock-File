@@ -144,7 +144,6 @@ use Fcntl qw(:DEFAULT :flock);
 use Lock::File::Alarm;
 
 use Log::Any qw($log);
-use Params::Validate;
 use POSIX qw(:errno_h);
 use Carp;
 
@@ -170,16 +169,21 @@ my %defaults = (
     remove => 0,
 );
 
+sub _validate {
+    my ($opts, @attrs) = @_;
+    my $opts_copy = {%$opts};
+    delete $opts_copy->{$_} for @attrs;
+    die "Unexpected options: ".join(',', keys %$opts_copy) if %$opts_copy;
+}
+
 sub lockf ($;$) {
-    my ($param, $opts) = validate_pos(@_, 1, 0);
+    my ($param, $opts) = @_;
+    if (@_ > 2 or @_ < 1) {
+        croak "invalid lockf arguments";
+    }
+
     $opts ||= {};
-    $opts = validate(@{ [ $opts ] }, {
-        blocking => 0,
-        shared => 0,
-        timeout => 0,
-        mode => 0,
-        remove => 0,
-    });
+    _validate($opts, qw/ blocking shared timeout mode remove /);
 
     if (exists $opts->{blocking} and defined $opts->{timeout}) {
         die "At most one of 'timeout' and 'blocking' options is allowed";
@@ -312,10 +316,7 @@ sub unlockf {
 sub lockf_multi ($$;$) {
     my ($fname, $max, $opts) = @_;
     $opts ||= {};
-    $opts = validate(@{ [$opts] }, {
-        remove => 0,
-        mode => 0,
-    });
+    _validate($opts, qw/ remove mode /);
 
     # to make sure no one will mess up the things
     # TODO - apply opts to metalock too?
@@ -357,13 +358,10 @@ sub lockf_multi ($$;$) {
 sub lockf_any ($;$) {
     my ($flist, $opts) = @_;
     $opts ||= {};
-    $opts = validate(@{ [$opts] }, {
-        remove => 0,
-        mode => 0,
-    });
+    _validate($opts, qw/ remove mode /);
 
     for my $fname (@$flist) {
-        my $lockf = lockf($fname, { blocking => 0, remove => $opts->{remove} });
+        my $lockf = lockf($fname, { blocking => 0, %$opts });
         return $lockf if $lockf;
     }
 

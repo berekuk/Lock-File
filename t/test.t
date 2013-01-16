@@ -313,4 +313,10 @@ sub special_symbols :Tests {
     is(exception { lockf_multi("tfiles/x[y]", 1) }, undef, "glob quoting");
 }
 
+sub invalid_parameters :Tests {
+    like
+        exception { lockf('tfiles/lock', { foo => 1 }) },
+        qr/Unexpected options: foo/;
+}
+
 __PACKAGE__->new->runtests;
