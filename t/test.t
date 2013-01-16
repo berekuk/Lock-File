@@ -153,7 +153,7 @@ sub timeout :Tests {
         exit(0);
     } else {
         sleep 1;
-        ok(not(lockf("tfiles/lock", {timeout => 0})), "timeout => 0 works like nonblocking => 0");
+        ok(exception { lockf("tfiles/lock", {timeout => 0}) }, "timeout => 0 throws an exception");
         ok(exception { lockf("tfiles/lock", {timeout => 3}) }, "can't get lock in the first 3 seconds");
         ok(!exception { lockf("tfiles/lock", {timeout => 3}) }, "can get lock in the next 3 seconds");
 

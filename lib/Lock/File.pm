@@ -182,6 +182,10 @@ sub lockf ($;$) {
         mode => 0,
         remove => 0,
     });
+
+    if (exists $opts->{blocking} and defined $opts->{timeout}) {
+        die "At most one of 'timeout' and 'blocking' options is allowed";
+    }
     $opts = {%defaults, %$opts};
 
     my ($fh, $fname);
@@ -263,7 +267,10 @@ sub _lockf {
         or (defined $opts->{timeout} and not $opts->{timeout}) # timeout=0
     ) {
         return 1 if flock ($fh, $mode | LOCK_NB);
-        return 0 if ($! == EWOULDBLOCK);
+        if ($! == EWOULDBLOCK) {
+            croak "flock $fname failed: timed out" if defined $opts->{timeout}; # timeout=0
+            return 0;
+        }
         croak "flock ".($fname || '')." failed: $!";
     }
 
