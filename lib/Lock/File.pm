@@ -7,7 +7,7 @@ package Lock::File;
     use Lock::File qw(lockf);
 
     # blocking mode is default
-    $lock = lockf('/var/lock/my_script.lock');
+    my $lock = lockf('/var/lock/my_script.lock');
 
     # unlock
     undef $lock;
@@ -120,6 +120,10 @@ OFF by default.
 If set, the lock file will be deleted before unlocking.
 
 =back
+
+Alternatively, you can use OO interface:
+
+    my $lock = Lock::File->new($file, $options);
 
 =cut
 sub lockf ($;$) {

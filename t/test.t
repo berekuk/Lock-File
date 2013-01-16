@@ -61,7 +61,7 @@ sub wait_all {
 
 sub t($) {
     my ($time) = @_;
-    my $sleep_period = $ENV{SLEEP_PERIOD} || 0.1;
+    my $sleep_period = $ENV{SLEEP_PERIOD} || 0.3;
     return $time * $sleep_period;
 }
 # sleep N tacts
@@ -130,7 +130,7 @@ sub some_more :Tests {
         my $lock;
         ok(!exception { $lock = lockf("tfiles/lock", {blocking => 0}) }, "get nonblocking lock");
     }, sub {
-        tsleep 3;
+        tsleep 2;
         child_ok(
             not(lockf("tfiles/lock", {blocking => 0})),
             "undef when already locked"
