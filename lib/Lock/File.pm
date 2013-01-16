@@ -306,15 +306,11 @@ sub unlockf {
 
 sub lockf_multi ($$;$) {
     my ($fname, $max, $opts) = @_;
-    if ($opts) {
-        $opts = validate(@{ [$opts] }, {
-            remove => 0,
-            mode => 0,
-        });
-    }
-    else {
-        $opts = {};
-    }
+    $opts ||= {};
+    $opts = validate(@{ [$opts] }, {
+        remove => 0,
+        mode => 0,
+    });
 
     # to make sure no one will mess up the things
     # TODO - apply opts to metalock too?
@@ -324,8 +320,9 @@ sub lockf_multi ($$;$) {
 
     my $locked = 0;
     my $ret;
-    for my $file (keys %flist) # try to get lock on existing file
-    {
+
+    # try to get lock on existing file
+    for my $file (keys %flist) {
         my $lockf = lockf($file, { blocking => 0, %$opts });
         $locked++ unless $lockf;
         $ret ||= $lockf;
@@ -335,12 +332,13 @@ sub lockf_multi ($$;$) {
         }
     }
 
+    # try non-existing files
     if ($locked < $max and not $ret) {
         for my $i (0 .. ($max-1)) {
             my $file = "$fname.$i";
             next if $flist{$file};
             my $lockf = lockf($file, { blocking => 0, %$opts });
-            die unless $lockf; # mystery - FIXME
+            die "Unable to obtain lock on new multilock file $file" unless $lockf; # this should never happen
             $ret = $lockf;
             last;
         }
@@ -353,18 +351,13 @@ sub lockf_multi ($$;$) {
 
 sub lockf_any ($;$) {
     my ($flist, $opts) = @_;
-    if ($opts) {
-        $opts = validate(@{ [$opts] }, {
-            remove => 0,
-            mode => 0,
-        });
-    }
-    else {
-        $opts = {};
-    }
+    $opts ||= {};
+    $opts = validate(@{ [$opts] }, {
+        remove => 0,
+        mode => 0,
+    });
 
-    for my $fname (@$flist)
-    {
+    for my $fname (@$flist) {
         my $lockf = lockf($fname, { blocking => 0, remove => $opts->{remove} });
         return $lockf if $lockf;
     }
