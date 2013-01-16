@@ -11,8 +11,12 @@ package Lock::File;
 
     # unlock
     undef $lock;
+
     # or:
     $lock->unlockf();
+
+    # print filename
+    say $lock->name;
 
     $lock = lockf('./my.lock', { blocking => 0 }) or die "Already locked";
 
@@ -22,7 +26,6 @@ package Lock::File;
     $lock = lockf_multi('./my.lock', 5); # will try to lock on files "my.lock.0", "my.lock.1" .. "my.lock.4"
 
     $lock = lockf_any('foo', 'bar');
-
 
 =head1 DESCRIPTION
 
@@ -34,6 +37,47 @@ C<lockf_multi> makes non-blocking C<lockf> calls for multiple files and throws a
 =head1 FUNCTIONS
 
 =over
+
+=cut
+
+use strict;
+no warnings;
+use Fcntl qw(:DEFAULT :flock);
+
+use Lock::File::Alarm;
+
+use Log::Any qw($log);
+use POSIX qw(:errno_h);
+use Carp;
+
+use base qw(Exporter);
+our @EXPORT_OK = qw( lockf unlockf lockf_multi lockf_any );
+our %EXPORT_TAGS = (all => \@EXPORT_OK);
+
+sub DESTROY {
+    local $@;
+    my ($self) = @_;
+    my $fh = $self->{_fh};
+    return unless defined $fh; # already released
+    unlink $self->{_fname} if $self->{_remove} and $self->{_fname};
+    flock $fh, LOCK_UN; # don't check result code - sometimes this handle appeares to be already closed
+    delete $self->{_fh}; # closes the file if opened by us
+}
+
+my %defaults = (
+    shared => 0,
+    blocking => 1,
+    timeout => undef,
+    mode => undef,
+    remove => 0,
+);
+
+sub _validate {
+    my ($opts, @attrs) = @_;
+    my $opts_copy = {%$opts};
+    delete $opts_copy->{$_} for @attrs;
+    die "Unexpected options: ".join(',', keys %$opts_copy) if %$opts_copy;
+}
 
 =item B<lockf($file, $options)>
 
@@ -77,106 +121,13 @@ If set, the lock file will be deleted before unlocking.
 
 =back
 
-=item B<lockf_multi($file, $max, $options)>
-
-Calls non-blocking C<lockf>'s for files from C<$fname.0> to C<$fname.$max-1>, and returns a C<Lock::File> object for the first successful lock.
-
-Only I<remove> and I<mode> options are supported.
-
-=item B<lockf_any($filenames, $options)>
-
-Same as C<lockf_multi>, but accepts arrayref of filenames.
-
-=back
-
-=head1 METHODS
-
-=over
-
-=item B<unlockf()>
-
-Force the lock to be released independent of how many references to the object are still alive.
-
-=item B<share()>
-
-Transform exclusive lock to shared.
-
-=item B<unshare()>
-
-Transform shared lock to exclusive. Can block if other shared/exclusive locks are held by some other processes.
-
-=item B<name()>
-
-Gives the name of the file, as it was when the lock was taken.
-
-=back
-
-=head1 FAQ
-
-=over
-
-=item I<Yet another locking module? Why?>
-
-There're L<tons of file locking modules|https://metacpan.org/search?q=lock> on CPAN. Last time I counted, there were at least 17.
-
-And yet, every time I tried to find a replacement for our in-house code on which this module is based, every one of them had quirks which I found too uncomfortable. I had to copy our code as L<Ubic::Lockf> when I opensourced Ubic.
-
-I wanted to do the review of all those modules, L<neilb style|http://neilb.org/reviews/>. I never got around to that, and then I realized how much this task holds me back from releasing other useful stuff.
-
-So... sorry for bringing yet-another-file-locking module into the world.
-
-=item I<Why Lock::File instead of File::Lock?>
-
-First, there's L<File::Lock::Multi>, which is completely unrelated to this module.
-
-Second, there are so many locking modules that choosing a good name is *hard*.
-
-Third, maybe I'm going to release L<Lock::Zookeeper> with the similar interface in the future.
-
-=back
-
 =cut
-
-use strict;
-no warnings;
-use Fcntl qw(:DEFAULT :flock);
-
-use Lock::File::Alarm;
-
-use Log::Any qw($log);
-use POSIX qw(:errno_h);
-use Carp;
-
-use base qw(Exporter);
-our @EXPORT_OK = qw( lockf unlockf lockf_multi lockf_any );
-our %EXPORT_TAGS = (all => \@EXPORT_OK);
-
-sub DESTROY {
-    local $@;
-    my ($self) = @_;
-    my $fh = $self->{_fh};
-    return unless defined $fh; # already released
-    unlink $self->{_fname} if $self->{_remove} and $self->{_fname};
-    flock $fh, LOCK_UN; # don't check result code - sometimes this handle appeares to be already closed
-    delete $self->{_fh}; # closes the file if opened by us
-}
-
-my %defaults = (
-    shared => 0,
-    blocking => 1,
-    timeout => undef,
-    mode => undef,
-    remove => 0,
-);
-
-sub _validate {
-    my ($opts, @attrs) = @_;
-    my $opts_copy = {%$opts};
-    delete $opts_copy->{$_} for @attrs;
-    die "Unexpected options: ".join(',', keys %$opts_copy) if %$opts_copy;
-}
-
 sub lockf ($;$) {
+    return __PACKAGE__->new(@_);
+}
+
+sub new {
+    my $class = shift;
     my ($param, $opts) = @_;
     if (@_ > 2 or @_ < 1) {
         croak "invalid lockf arguments";
@@ -206,7 +157,7 @@ sub lockf ($;$) {
         _fh => $fh,
         _fname => $fname,
         _remove => $opts->{remove},
-    } => __PACKAGE__;
+    } => $class;
 }
 
 sub _open {
@@ -293,26 +244,13 @@ sub _lockf {
     return 1;
 }
 
-sub name {
-    my $self = shift;
-    return $self->{_fname};
-}
+=item B<lockf_multi($file, $max, $options)>
 
-sub share {
-    my $self = shift;
-    _xflock($self->{_fh}, LOCK_SH);
-}
+Calls non-blocking C<lockf>'s for files from C<$fname.0> to C<$fname.$max-1>, and returns a C<Lock::File> object for the first successful lock.
 
-sub unshare {
-    my $self = shift;
-    _xflock($self->{_fh}, LOCK_EX);
-}
+Only I<remove> and I<mode> options are supported.
 
-sub unlockf {
-    my $self = shift;
-    $self->DESTROY();
-}
-
+=cut
 sub lockf_multi ($$;$) {
     my ($fname, $max, $opts) = @_;
     $opts ||= {};
@@ -354,7 +292,11 @@ sub lockf_multi ($$;$) {
     return undef;
 }
 
+=item B<lockf_any($filenames, $options)>
 
+Same as C<lockf_multi>, but accepts arrayref of filenames.
+
+=cut
 sub lockf_any ($;$) {
     my ($flist, $opts) = @_;
     $opts ||= {};
@@ -367,5 +309,93 @@ sub lockf_any ($;$) {
 
     return undef;
 }
+
+=back
+
+=head1 METHODS
+
+=over
+
+=item B<unlockf()>
+
+Force the lock to be released independent of how many references to the object are still alive.
+
+=cut
+sub name {
+    my $self = shift;
+    return $self->{_fname};
+}
+
+=item B<share()>
+
+Transform exclusive lock to shared.
+
+=cut
+sub share {
+    my $self = shift;
+    _xflock($self->{_fh}, LOCK_SH);
+}
+
+=item B<unshare()>
+
+Transform shared lock to exclusive. Can block if other shared/exclusive locks are held by some other processes.
+
+=cut
+sub unshare {
+    my $self = shift;
+    _xflock($self->{_fh}, LOCK_EX);
+}
+
+=item B<name()>
+
+Gives the name of the file, as it was when the lock was taken.
+
+=cut
+sub unlockf {
+    my $self = shift;
+    $self->DESTROY();
+}
+
+=back
+
+=head1 FAQ
+
+=over
+
+=item I<Yet another locking module? Why?>
+
+There're L<tons of file locking modules|https://metacpan.org/search?q=lock> on CPAN. Last time I counted, there were at least 17.
+
+And yet, every time I tried to find a replacement for our in-house code on which this module is based, every one of them had quirks which I found too uncomfortable. I had to copy our code as L<Ubic::Lockf> when I opensourced Ubic.
+
+I wanted to do the review of all those modules, L<neilb style|http://neilb.org/reviews/>. I never got around to that, and then I realized how much this task holds me back from releasing other useful stuff.
+
+So... sorry for bringing yet-another-file-locking module into the world.
+
+=item I<Why Lock::File instead of File::Lock?>
+
+First, there's L<File::Lock::Multi>, which is completely unrelated to this module.
+
+Second, there are so many locking modules that choosing a good name is *hard*.
+
+Third, maybe I'm going to release L<Lock::Zookeeper> with the similar interface in the future.
+
+=back
+
+=head1 SIMILAR MODULES
+
+L<File::Flock::Tiny>
+
+L<File::Lockfile>
+
+L<Lazy::Lockfile>
+
+L<Lockfile::Simple>
+
+L<File::Lock::Multi>
+
+L<File::Lock>
+
+=cut
 
 1;
