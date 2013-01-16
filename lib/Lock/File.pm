@@ -137,7 +137,7 @@ Third, maybe I'm going to release L<Lock::Zookeeper> with the similar interface 
 
 use strict;
 no warnings;
-use Fcntl qw(:flock);
+use Fcntl qw(:DEFAULT :flock);
 
 use Lock::File::Alarm;
 
@@ -203,17 +203,34 @@ sub lockf ($;$) {
     } => __PACKAGE__;
 }
 
+sub _open {
+    my ($chmod, $fname) = @_;
+
+    my $fh;
+    my $res;
+    if (defined $chmod) {
+        $chmod = oct($chmod) if $chmod =~ s/^0//;
+        my $mode = O_WRONLY|O_CREAT|O_APPEND;
+        my $umask = umask(0);
+        $res = sysopen $fh, $fname, $mode, $chmod;
+        umask($umask);
+    }
+    else {
+        $res = open $fh, '>>', $fname;
+    }
+    die "open $fname with mode $chmod failed: ", _log_message($!) unless $res;
+    return $fh;
+}
+
 sub _lockf_and_check {
     my ($fh, $fname, $opts) = @_;
 
-    unless ($fname) { # no unlink/lockf race when locking an already opened filehandle
+    unless (defined $fname) { # no unlink/lockf race when locking an already opened filehandle
         return _lockf(@_) ? $fh : undef;
     }
 
     while () {
-        my $mode = ">>";
-        $mode .= $opts->{mode} if $opts->{mode};
-        open $fh, $mode, $fname; # reopen
+        $fh = _open($opts->{mode}, $fname);
         my $lockf = _lockf($fh, $fname, $opts);
         return unless $lockf;
 

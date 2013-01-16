@@ -164,7 +164,6 @@ sub timeout :Tests {
 }
 
 sub mode :Tests {
-    return 'mode is temporarily broken';
     my $state = lockf('tfiles/lock', { mode => 0765 });
     undef $state;
 
