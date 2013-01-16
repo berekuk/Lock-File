@@ -148,8 +148,6 @@ use Params::Validate;
 use POSIX qw(:errno_h);
 use Carp;
 
-use autodie qw(open);
-
 use base qw(Exporter);
 our @EXPORT_OK = qw( lockf unlockf lockf_multi lockf_any );
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
