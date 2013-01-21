@@ -350,14 +350,20 @@ sub unshare {
     _xflock($self->{_fh}, LOCK_EX);
 }
 
-=item B<unlockf()>
+=item B<unlock()>
 
 Force the lock to be released independent of how many references to the object are still alive.
 
+C<unlockf()> is an alternative, deprecated name of this method.
+
 =cut
-sub unlockf {
+sub unlock {
     my $self = shift;
     $self->DESTROY();
+}
+
+sub unlockf {
+    goto &{ $_[0]->can('unlock') };
 }
 
 =back
