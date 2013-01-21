@@ -320,9 +320,9 @@ sub lockf_any ($;$) {
 
 =over
 
-=item B<unlockf()>
+=item B<name()>
 
-Force the lock to be released independent of how many references to the object are still alive.
+Gives the name of the file, as it was when the lock was taken.
 
 =cut
 sub name {
@@ -350,9 +350,9 @@ sub unshare {
     _xflock($self->{_fh}, LOCK_EX);
 }
 
-=item B<name()>
+=item B<unlockf()>
 
-Gives the name of the file, as it was when the lock was taken.
+Force the lock to be released independent of how many references to the object are still alive.
 
 =cut
 sub unlockf {
