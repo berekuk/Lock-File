@@ -51,7 +51,7 @@ use POSIX qw(:errno_h);
 use Carp;
 
 use base qw(Exporter);
-our @EXPORT_OK = qw( lockf unlockf lockf_multi lockf_any );
+our @EXPORT_OK = qw( lockf lockf_multi lockf_any );
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 sub DESTROY {

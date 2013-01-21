@@ -2,6 +2,7 @@ Revision history for Lock-File
 
 {{$NEXT}}
     * ->unlock() method; deprecate ->unlockf()
+    * don't export unlockf()
 
 1.00    2013-01-16
     * First opensource release.
