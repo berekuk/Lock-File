@@ -1,6 +1,8 @@
 Revision history for Lock-File
 
 {{$NEXT}}
+
+1.01    2013-01-23
     * rename lockf() to lockfile(), lockf_multi() to lockfile_multi(), lockf_any() to lockfile_any()
     * ->unlock() method
     * deprecate all old *lockf* functions and method
