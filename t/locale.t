@@ -7,7 +7,7 @@ use Test::More;
 
 use lib 'lib';
 
-use Lock::File qw(lockf);
+use Lock::File qw(lockfile);
 
 use autodie qw(fork);
 
@@ -17,12 +17,12 @@ mkdir 'tfiles';
 
 $ENV{LANG} = 'ru_RU.utf8';
 if (!fork) {
-    my $lock = lockf("./tfiles/lock");
+    my $lock = lockfile("./tfiles/lock");
     sleep 2;
     exit(0);
 } else {
     sleep 1;
-    ok((not defined lockf("./tfiles/lock", {blocking => 0})), 'returns undef when already locked');
+    ok((not defined lockfile("./tfiles/lock", {blocking => 0})), 'returns undef when already locked');
 }
 
 done_testing;
