@@ -11,6 +11,7 @@ use IPC::System::Simple;
 
 use Test::More;
 use Test::Fatal;
+use Test::Warn;
 use base qw(Test::Class);
 
 use File::Path qw(remove_tree);
@@ -105,9 +106,9 @@ sub forked_tests {
 sub single_nonblocking_lock :Tests {
     forked_tests(sub {
         tsleep 1;
-        ok((not defined lockf("tfiles/lock", {blocking => 0})), 'undef when already locked');
+        ok((not defined lockfile("tfiles/lock", {blocking => 0})), 'undef when already locked');
     }, sub {
-        my $lock = lockf("tfiles/lock");
+        my $lock = lockfile("tfiles/lock");
         tsleep 2;
     });
 }
@@ -115,45 +116,45 @@ sub single_nonblocking_lock :Tests {
 sub shared_lock :Tests {
     forked_tests(sub {
         tsleep 1;
-        ok(!lockf("tfiles/lock", {blocking => 0}), "don't acquire lock when shared lock exists");
+        ok(!lockfile("tfiles/lock", {blocking => 0}), "don't acquire lock when shared lock exists");
     }, sub {
-        my $lock = lockf("tfiles/lock", {shared => 1});
+        my $lock = lockfile("tfiles/lock", {shared => 1});
         tsleep 2;
     }, sub {
         tsleep 1;
-        child_ok(lockf("tfiles/lock", {shared => 1, blocking => 0}), "acquire shared lock twice");
+        child_ok(lockfile("tfiles/lock", {shared => 1, blocking => 0}), "acquire shared lock twice");
     });
 }
 
 sub some_more :Tests {
     forked_tests(sub {
         my $lock;
-        ok(!exception { $lock = lockf("tfiles/lock", {blocking => 0}) }, "get nonblocking lock");
+        ok(!exception { $lock = lockfile("tfiles/lock", {blocking => 0}) }, "get nonblocking lock");
     }, sub {
         tsleep 2;
         child_ok(
-            not(lockf("tfiles/lock", {blocking => 0})),
+            not(lockfile("tfiles/lock", {blocking => 0})),
             "undef when already locked"
         );
     }, sub {
         tsleep 1;
         my $lock;
-        child_ok($lock = lockf("tfiles/lock"), "blocking wait for lock");
+        child_ok($lock = lockfile("tfiles/lock"), "blocking wait for lock");
         tsleep 2;
     });
 }
 
 sub share_unshare :Tests {
     forked_tests(sub {
-        my $lock = lockf("tfiles/lock", {shared => 1, blocking => 0});
+        my $lock = lockfile("tfiles/lock", {shared => 1, blocking => 0});
         tsleep 2; #+2s
         undef $lock;
         tsleep 1;
-        ok(!lockf("tfiles/lock", {shared => 1, blocking => 0}), "don't get shared lock when exclusive lock exists");
+        ok(!lockfile("tfiles/lock", {shared => 1, blocking => 0}), "don't get shared lock when exclusive lock exists");
         tsleep 3;
-        ok(lockf("tfiles/lock", {shared => 1, blocking => 0}), "get shared lock when shared lock exists");
+        ok(lockfile("tfiles/lock", {shared => 1, blocking => 0}), "get shared lock when shared lock exists");
     }, sub {
-        my $lock = lockf("tfiles/lock", {shared => 1, blocking => 0});
+        my $lock = lockfile("tfiles/lock", {shared => 1, blocking => 0});
         tsleep 1; # +1s
         child_ok(!exception { $lock->unshare() }, "unshare shared lock"); # will wait 1 second, +2s
         tsleep 3; # +5s
@@ -165,20 +166,20 @@ sub share_unshare :Tests {
 sub timeout :Tests {
     forked_tests(sub {
         sleep 1;
-        ok(exception { lockf("tfiles/lock", {timeout => 0}) }, "timeout => 0 throws an exception");
-        ok(exception { lockf("tfiles/lock", {timeout => 3}) }, "can't get lock in the first 3 seconds");
-        ok(!exception { lockf("tfiles/lock", {timeout => 3}) }, "can get lock in the next 3 seconds");
+        ok(exception { lockfile("tfiles/lock", {timeout => 0}) }, "timeout => 0 throws an exception");
+        ok(exception { lockfile("tfiles/lock", {timeout => 3}) }, "can't get lock in the first 3 seconds");
+        ok(!exception { lockfile("tfiles/lock", {timeout => 3}) }, "can get lock in the next 3 seconds");
 
-        my $other_lock = lockf("tfiles/lock.other", {timeout => 0});
+        my $other_lock = lockfile("tfiles/lock.other", {timeout => 0});
         ok($other_lock, "timeout => 0 works like nonblocking => 0");
     }, sub {
-        my $lock = lockf("tfiles/lock");
+        my $lock = lockfile("tfiles/lock");
         sleep 5; # timeout don't support float values, so we can't use tsleep here
     });
 }
 
 sub mode :Tests {
-    my $state = lockf('tfiles/lock', { mode => 0765 });
+    my $state = lockfile('tfiles/lock', { mode => 0765 });
     undef $state;
 
     my $mode = (stat('tfiles/lock'))[2];
@@ -189,11 +190,11 @@ sub mode :Tests {
 sub multilock :Tests {
     forked_tests(sub {
         tsleep 1;
-        ok(!exception { lockf_multi("tfiles/lock", 4) }, "can get multilock 4 of 4");
+        ok(!exception { lockfile_multi("tfiles/lock", 4) }, "can get multilock 4 of 4");
     }, sub {
-        my $lockf1 = lockf_multi("tfiles/lock", 4);
-        my $lockf2 = lockf_multi("tfiles/lock", 4);
-        my $lockf3 = lockf_multi("tfiles/lock", 4);
+        my $lockfile1 = lockfile_multi("tfiles/lock", 4);
+        my $lockfile2 = lockfile_multi("tfiles/lock", 4);
+        my $lockfile3 = lockfile_multi("tfiles/lock", 4);
         tsleep 3;
     });
 }
@@ -201,12 +202,12 @@ sub multilock :Tests {
 sub more_multilock :Tests {
     forked_tests(sub {
         tsleep 1;
-        is lockf_multi("tfiles/lock", 4), undef, "can't get multilock 5 of 4, but don't throw exception";
+        is lockfile_multi("tfiles/lock", 4), undef, "can't get multilock 5 of 4, but don't throw exception";
     }, sub {
-        my $lockf1 = lockf_multi("tfiles/lock", 4);
-        my $lockf2 = lockf_multi("tfiles/lock", 4);
-        my $lockf3 = lockf_multi("tfiles/lock", 4);
-        my $lockf4 = lockf_multi("tfiles/lock", 4);
+        my $lockfile1 = lockfile_multi("tfiles/lock", 4);
+        my $lockfile2 = lockfile_multi("tfiles/lock", 4);
+        my $lockfile3 = lockfile_multi("tfiles/lock", 4);
+        my $lockfile4 = lockfile_multi("tfiles/lock", 4);
         tsleep 3;
     });
 }
@@ -216,13 +217,13 @@ sub and_more_multilock :Tests {
         forked_tests(sub {
             tsleep 1;
             my $msg = $remove ? "(remove => 1)" : "";
-            ok(!lockf_multi("tfiles/lock", 2), "can't get multilock for 2 when 4 are locked $msg");
-            ok(!lockf_multi("tfiles/lock", 4), "can't get multilock for 4 when 4 are locked $msg");
-            ok(lockf_multi("tfiles/lock", 5), "can get multilock for 5 when 4 are locked $msg");
+            ok(!lockfile_multi("tfiles/lock", 2), "can't get multilock for 2 when 4 are locked $msg");
+            ok(!lockfile_multi("tfiles/lock", 4), "can't get multilock for 4 when 4 are locked $msg");
+            ok(lockfile_multi("tfiles/lock", 5), "can get multilock for 5 when 4 are locked $msg");
         }, sub {
             my @locks;
             foreach(0..6) {
-                push @locks, lockf_multi("tfiles/lock", 7, { remove => $remove });
+                push @locks, lockfile_multi("tfiles/lock", 7, { remove => $remove });
             }
             delete @locks[1..3];
             tsleep 3;
@@ -231,22 +232,22 @@ sub and_more_multilock :Tests {
 }
 
 sub multilock_no_exceptions :Tests {
-    ok(exception { my $lockf1 = lockf_multi("tfiles/dir/lock", 4, 1) }, 'lockf_multi throws exception even with no_exceptions flag if error is not about lock availability');
+    ok(exception { my $lockfile1 = lockfile_multi("tfiles/dir/lock", 4, 1) }, 'lockfile_multi throws exception even with no_exceptions flag if error is not about lock availability');
 }
 
 
 sub name :Tests {
-    my $lock = lockf("tfiles/lock");
+    my $lock = lockfile("tfiles/lock");
     ok($lock->name() eq "tfiles/lock", "name OK");
 }
 
-sub test_lockf_any :Tests {
+sub test_lockfile_any :Tests {
     my @files = ("tfiles/lock.foo", "tfiles/lock.bar");
 
-    my $lock1 = lockf_any(\@files);
-    my $lock2 = lockf_any(\@files);
+    my $lock1 = lockfile_any(\@files);
+    my $lock2 = lockfile_any(\@files);
 
-    ok(!lockf_any(\@files), "lockf_any won't lock what it should not");
+    ok(!lockfile_any(\@files), "lockfile_any won't lock what it should not");
     ok(($lock1->name() eq 'tfiles/lock.foo') && ($lock2->name() eq 'tfiles/lock.bar'), "names and order are fine");
 }
 
@@ -259,22 +260,22 @@ sub alarm :Tests {
         };
         sleep 1;
         alarm(6);
-        ok(exception { lockf("tfiles/lock", { timeout => 2 }) }, "timeout 2 fails");
-        ok(!exception { lockf("tfiles/lock", { timeout => 2 }) }, "timeout 4 succeeds");
+        ok(exception { lockfile("tfiles/lock", { timeout => 2 }) }, "timeout 2 fails");
+        ok(!exception { lockfile("tfiles/lock", { timeout => 2 }) }, "timeout 4 succeeds");
         sleep 3;
         ok($alarmed == 1, "timeout preserves external alarms");
 
         if (!fork) {
-            my $lock = lockf("tfiles/lock");
+            my $lock = lockfile("tfiles/lock");
             tsleep 2;
             exit(0);
         }
         alarm(1);
-        ok(!exception { lockf("tfiles/lock", { timeout => 3 }) }, "timeout 3 succeeds");
+        ok(!exception { lockfile("tfiles/lock", { timeout => 3 }) }, "timeout 3 succeeds");
         sleep 2;
         ok($alarmed == 2, "alarms that fired during timeout are preserved thou delayed");
     }, sub {
-        my $lock = lockf("tfiles/lock");
+        my $lock = lockfile("tfiles/lock");
         sleep 4;
     });
 }
@@ -282,15 +283,15 @@ sub alarm :Tests {
 sub remove :Tests {
     my $time = time;
     system("echo 0 > tfiles/1 && echo 0 > tfiles/2");
-    my $lockf = lockf("tfiles/lock", { remove => 1 });
-    undef $lockf;
+    my $lockfile = lockfile("tfiles/lock", { remove => 1 });
+    undef $lockfile;
     ok(!(-e "tfiles/lock"), "'remove' option");
 
     for (1..5) {
         fork and next;
         while () {
             last if time >= $time + 2;
-            my $lockf = lockf("tfiles/lock", { remove => 1 });
+            my $lockfile = lockfile("tfiles/lock", { remove => 1 });
             my @fh = map { open(my $fh, "+<", "tfiles/$_"); $fh } (1..2);
             my @x = map { scalar(<$_>) } @fh;
             $_++ for @x;
@@ -304,19 +305,27 @@ sub remove :Tests {
     }
 
     wait_all;
-    cmp_ok(xqx("cat tfiles/1"), "==", xqx("cat tfiles/2"), "unlink/lockf race");
+    cmp_ok(xqx("cat tfiles/1"), "==", xqx("cat tfiles/2"), "unlink/lockfile race");
 }
 
 sub special_symbols :Tests {
-    my $l1 = lockf_multi("tfiles/x[y]", 1);
+    my $l1 = lockfile_multi("tfiles/x[y]", 1);
     ok(-e "tfiles/x[y].0", "filename");
-    is(exception { lockf_multi("tfiles/x[y]", 1) }, undef, "glob quoting");
+    is(exception { lockfile_multi("tfiles/x[y]", 1) }, undef, "glob quoting");
 }
 
 sub invalid_parameters :Tests {
     like
-        exception { lockf('tfiles/lock', { foo => 1 }) },
+        exception { lockfile('tfiles/lock', { foo => 1 }) },
         qr/Unexpected options: foo/;
+}
+
+sub deprecated_functions :Tests {
+    my $lock;
+    warning_like {
+        $lock = lockf('tfiles/lock')
+    } qr/deprecated/, 'lockf() warns';
+    ok $lock, 'lockf() still returns a lock';
 }
 
 __PACKAGE__->new->runtests;
