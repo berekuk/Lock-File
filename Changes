@@ -1,8 +1,11 @@
 Revision history for Lock-File
 
 {{$NEXT}}
-    * ->unlock() method; deprecate ->unlockf()
+    * rename lockf() to lockfile(), lockf_multi() to lockfile_multi(), lockf_any() to lockfile_any()
+    * ->unlock() method
+    * deprecate all old *lockf* functions and method
     * don't export unlockf()
+    * minor pod and packaging fixes
 
 1.00    2013-01-16
     * First opensource release.
