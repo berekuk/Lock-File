@@ -7,7 +7,7 @@ use warnings;
 
 =head1 DESCRIPTION
 
-This module is necessary to implement timeouts in C<Ubic::Lockf> class.
+This module is necessary to implement timeouts in C<Lock::File> class.
 
 =head1 METHODS
 
