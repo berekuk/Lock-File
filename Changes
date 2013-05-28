@@ -1,6 +1,8 @@
 Revision history for Lock-File
 
 {{$NEXT}}
+
+1.02    2013-05-28
     * timeout option is compatible with blocking=1, but still incompatible with blocking=0
 
 1.01    2013-01-23
