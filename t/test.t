@@ -176,6 +176,9 @@ sub timeout :Tests {
         my $lock = lockfile("tfiles/lock");
         sleep 5; # timeout don't support float values, so we can't use tsleep here
     });
+
+    ok(exception { lockf("tfiles/lock", { timeout => 3, blocking => 0 }) }, "timeout is incompatible with blocking => 0");
+    ok(!exception { lockf("tfiles/lock", { timeout => 3, blocking => 1 }) }, "timeout is compatible with blocking => 1");
 }
 
 sub mode :Tests {

@@ -109,6 +109,8 @@ Throws an exception on timeout.
 
 The value of 0 is equivalent to C<< blocking => 0 >> option, except that it throws an exception instead of returning undef if the file is already locked.
 
+I<blocking> is assumed to be true, and specifying C<< blocking => 0 >> explicitly is considered an error.
+
 =item I<mode>
 
 Undef by default.
@@ -145,8 +147,8 @@ sub new {
     $opts ||= {};
     _validate($opts, qw/ blocking shared timeout mode remove /);
 
-    if (exists $opts->{blocking} and defined $opts->{timeout}) {
-        die "At most one of 'timeout' and 'blocking' options is allowed";
+    if (exists $opts->{blocking} and not $opts->{blocking} and defined $opts->{timeout}) {
+        die "non-blocking mode is incompatible with timeout option";
     }
     $opts = {%defaults, %$opts};
 
