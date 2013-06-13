@@ -187,6 +187,10 @@ sub mode :Tests {
 
     my $mode = (stat('tfiles/lock'))[2];
     ok(($mode & 07777) == 0765, "mode set right");
+
+    unlike(exception {
+        $state = lockfile('tfiles/.', { mode => 0765 });
+    }, qr/Undefined\s+subroutine.*?_log_message\s+called/, "no _log function");
 }
 
 

@@ -171,6 +171,20 @@ sub new {
     } => $class;
 }
 
+sub _log_message ($;$) {
+    my ($bang, $question) = @_;
+    my @msg;
+    if ($bang) {
+        push @msg, "error ".int($bang)." '$bang'";
+    }
+    if (defined $question and $question > 0) {
+        push @msg, "kill by signal ".($question & 127) if ($question & 127);
+        push @msg, "core dumped" if ($question & 128);
+        push @msg, "exit code ".($question >> 8) if $question >> 8;
+    }
+    return join ", ", @msg;
+}
+
 sub _open {
     my ($chmod, $fname) = @_;
 
