@@ -1,6 +1,8 @@
 Revision history for Lock-File
 
 {{$NEXT}}
+
+1.03    2013-06-16
     * rebuild on Linux - fix broken tarball, see https://rt.cpan.org/Ticket/Display.html?id=86188
     * fix "Undefined subroutine &Lock::File::_log_message" error
 
