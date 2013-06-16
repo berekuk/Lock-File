@@ -1,6 +1,8 @@
 Revision history for Lock-File
 
 {{$NEXT}}
+    * rebuild on Linux - fix broken tarball, see https://rt.cpan.org/Ticket/Display.html?id=86188
+    * fix "Undefined subroutine &Lock::File::_log_message" error
 
 1.02    2013-05-28
     * timeout option is compatible with blocking=1, but still incompatible with blocking=0
