@@ -29,7 +29,7 @@ package Lock::File;
 
 =head1 DESCRIPTION
 
-C<lockfile> is a perlfunc C<flock> wrapper. The lock is autotamically released as soon as the assotiated object is
+C<lockfile> is a perlfunc C<flock> wrapper. The lock is automatically released as soon as the assotiated object is
 no longer referenced.
 
 C<lockfile_multi> makes non-blocking C<lockfile> calls for multiple files and throws and exception if all are locked.
